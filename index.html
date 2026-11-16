@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>חן פרג'ון // סדר ושבירה</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Assistant:wght@400;700;800&family=IBM+Plex+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.min.js"></script>
+    
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            border-radius: 0px !important;
+        }
+
+        :root {
+            --bg-color: #F4F4F0;
+            --ink-color: #111111;
+            --accent-color: #D9381E;
+            --grid-line: 1px solid #111111;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--ink-color);
+            font-family: 'Assistant', sans-serif;
+            overflow-x: hidden;
+            line-height: 1.5;
+            user-select: none;
+        }
+
+        #break-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: 50;
+            pointer-events: none;
+        }
+
+        header {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            border-bottom: var(--grid-line);
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 0.85rem;
+            background: var(--bg-color);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .header-cell {
+            padding: 12px 16px;
+            border-left: var(--grid-line);
+            display: flex;
+            align-items: center;
+        }
+        .header-cell:last-child {
+            border-left: none;
+            padding: 6px 12px;
+        }
+
+        button#reset-order {
+            background: var(--ink-color);
+            color: var(--bg-color);
+            border: none;
+            padding: 8px 12px;
+            font-family: 'IBM Plex Mono', monospace;
+            cursor: pointer;
+            font-weight: bold;
+            width: 100%;
+            text-align: center;
+            transition: background 0.1s;
+        }
+        button#reset-order:hover {
+            background: var(--accent-color);
+        }
+
+        main {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            min-height: 100vh;
+        }
+
+        .grid-col {
+            border-left: var(--grid-line);
+            padding: 28px 22px;
+        }
+
+        .grid-col.empty-space {
+            border-left: none;
+            background-image: radial-gradient(#111 1px, transparent 1px);
+            background-size: 24px 24px;
+            opacity: 0.25;
+            position: relative;
+        }
+
+        .empty-space-note {
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 0.75rem;
+            writing-mode: vertical-rl;
+            transform: rotate(180deg);
+            position: sticky;
+            top: 80px;
+            color: var(--ink-color);
+        }
+
+        .sys-label {
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 8px;
+            display: block;
+            color: var(--accent-color);
+            font-weight: 700;
+        }
+
+        h1 {
+            font-size: 3.5rem;
+            font-weight: 800;
+            line-height: 0.95;
+            margin-bottom: 24px;
+            letter-spacing: -1px;
+        }
+
+        h2 {
+            font-size: 1.4rem;
+            font-weight: 800;
+            margin-top: 28px;
+            margin-bottom: 12px;
+            border-bottom: var(--grid-line);
+            padding-bottom: 4px;
+        }
+        h2:first-of-type {
+            margin-top: 0;
+        }
+
+        p {
+            font-size: 0.98rem;
+            margin-bottom: 16px;
+            text-align: justify;
+        }
+
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 0.78rem;
+            margin-top: 12px;
+            margin-bottom: 24px;
+        }
+
+        .data-table td {
+            border-bottom: 1px solid #bbb;
+            padding: 8px 4px;
+            vertical-align: top;
+        }
+        .data-table td:first-child {
+            font-weight: bold;
+            width: 38%;
+        }
+
+        .interaction-hint {
+            border: var(--grid-line);
+            padding: 12px;
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 0.78rem;
+            background: #EAEAE4;
+            margin-top: 24px;
+        }
+
+        @media (max-width: 1024px) {
+            main { grid-template-columns: repeat(2, 1fr); }
+            .grid-col.empty-space { display: none; }
+            header { grid-template-columns: repeat(2, 1fr); }
+        }
+        @media (max-width: 650px) {
+            main { grid-template-columns: 1fr; }
+            header { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="break-canvas"></div>
+
+    <header>
+        <div class="header-cell">ID: CHEN_FARJUN // 2026</div>
+        <div class="header-cell">GRID: SWISS_MODULAR_04</div>
+        <div class="header-cell">CONTAMINATION: <span id="dirt-level" style="font-weight:bold; margin-right:6px;">0%</span></div>
+        <div class="header-cell">
+            <button id="reset-order">[ ניקוי מערכת / RESET ]</button>
+        </div>
+    </header>
+
+    <main>
+        <section class="grid-col">
+            <span class="sys-label">01 /// הצהרת מערכת</span>
+            <h1>חן פרג'ון</h1>
+            <p><strong>פרופיל רשמי:</strong> מנהל מערך החינוך הבלתי פורמלי ומחלקת הנעורים בקיבוץ שפיים. סטודנט לתואר שני בעיצוב לסביבה טכנולוגית (M.Des), המכון הטכנולוגי חולון.</p>
+            
+            <h2>מטריצת נתונים</h2>
+            <table class="data-table">
+                <tr>
+                    <td>בסיס אם</td>
+                    <td>קיבוץ שפיים</td>
+                </tr>
+                <tr>
+                    <td>אקדמיה</td>
+                    <td>M.Des // HIT חולון</td>
+                </tr>
+                <tr>
+                    <td>מוקד מחקר</td>
+                    <td>טיפולוגיות ישיבה ובידוד מסכים</td>
+                </tr>
+                <tr>
+                    <td>לוגיקה וקוד</td>
+                    <td>Python, p5.js, Unity</td>
+                </tr>
+                <tr>
+                    <td>ניהול שטח</td>
+                    <td>150 חניכים // מסעות וצוותי הדרכה</td>
+                </tr>
+                <tr>
+                    <td>חומר גולמי</td>
+                    <td>עץ אורן, פחם, פיח טאבון</td>
+                </tr>
+            </table>
+
+            <div class="interaction-hint">
+                <strong>[ הוראות הפעלה ]</strong><br>
+                > הזזת עכבר: פיזור פיח וסיבי עץ.<br>
+                > לחיצת עכבר: הטבעת חותמת שטח.<br>
+                > מטרה: שבירת הטופסולוגיה הסטרילית.
+            </div>
+        </section>
+
+        <section class="grid-col">
+            <span class="sys-label">02 /// תזה: המבנה</span>
+            <h2>כאילו מי שאני</h2>
+            <p>קוראים לי חן פרג'ון. הבית שלי הוא בקיבוץ שפיים, שם אני חי עם אשתי הדר, הבן, הבת והכלב שלנו במבי. אם אני צריך לתאר את הזהות שלי, גם כאדם וגם כמעצב, היא נעה כמטוטלת תמידית על הציר שבין לוגיקה מערכתית נוקשה לבין חספוס, עבודת כפיים, והשטח. החיים שלי הם תרגיל מתמשך במפגש שבין סדר שוויצרי מוקפד לבין שבירה אקספרסיבית ואנטי-עיצובית.</p>
+            <p>את שכבת הסדר המודרניסטי שלי אפשר למצוא קודם כל ביומיום המקצועי שלי. ניהול מערך החינוך הבלתי פורמלי ומחלקת הנעורים דורש ארגון ברמת הפיקסל – גריד מתמטי שאין בו מקום לטעויות או להחלטות שהן "ברירת מחדל". כשאני בונה תוכניות עבודה שנתיות, מנהל צוותי הדרכה ומפיק מסעות שטח ל-150 חניכים – זהו מידע אובייקטיבי שדורש היררכיה ברורה ושקיפות.</p>
+            <p>הסדר הזה מעמיק אל תוך העולם האקדמי והטכנולוגי. עבודת התזה שלי בוחנת טיפולוגיות ישיבה במרחב הציבורי לנוער וספסלים חכמים למאבק בבידוד המסכים. כשאני כותב סקריפטים בפייתון או מייצר ויזואליזציות ב-p5.js, כל משתנה הוא החלטה מודעת, רשת בלתי נראית של חוקים מתמטיים שמחזיקה את החוויה יחד.</p>
+        </section>
+
+        <section class="grid-col">
+            <span class="sys-label">03 /// אנטיתזה: החומר</span>
+            <h2>מי שאני באמת</h2>
+            <p>אבל כאן בדיוק נכנסת האנטיתזה. המקום שבו הגריד נשבר, והלוגיקה מפנה את מקומה להבעה האישית, הגולמית, לחומר ולגוף. השבירה שלי היא עבודת כפיים, היא אותנטיות שמבוססת על מאמץ שאי אפשר למדל ועל זיכרון של המקום. הבינה המלאכותית לא יכולה לדעת איך מרגישה העבודה עם בני הנוער כשאנחנו בונים יחד שולחנות פיקניק כבדים מעץ אורן. היא לא יכולה לשכפל את החספוס של הנסורת, או את הטעויות הקטנות שקורות כשחותכים קרש בזווית לא מושלמת.</p>
+            <p>השבירה הזו מקבלת ביטוי חיצוני כשאני יוצא אל החצר ואל הטבע. אני מתאמן בחוץ, משאיר את מכוני הכושר הסטריליים מאחור. האהבה לחומר ממשיכה לבישול של אש, עשן וזמן – סירי פויקה שסופגים פיח, עישון בשרים ואפייה בטאבון רוחש. זוהי סביבה ורנקולרית, "שכונה", מקומית ואמיתית, שבה אין צורך ביישור לשוליים.</p>
+            <p>כשאני מסתכל על "הטופסולוגיה" שהבינה המלאכותית מציעה היום – כרטיסים מעוגלים, גרדיאנטים נעימים ושפה סטרילית – אני מסרב לה. הגריד המודרניסטי המחושב חייב להיות מותקף על ידי החומר האישי והמשבש. האנטי-דיזיין שלי תלוי בגריד שהוא שובר, כי רק מתוך ההרס הזה נוצרת משמעות אמיתית.</p>
+        </section>
+
+        <section class="grid-col empty-space" aria-hidden="true">
+            <span class="empty-space-note">INTENTIONAL WHITE SPACE // SWISS GRID MODULE 04</span>
+        </section>
+    </main>
+
+    <script>
+        let dirtCount = 0;
+        const maxDirt = 1800;
+        let myImages = [];
+        let imgIndex = 0;
+
+        function setup() {
+            let canvas = createCanvas(windowWidth, windowHeight);
+            canvas.parent('break-canvas');
+            imageMode(CENTER);
+            clear();
+            
+            for (let i = 1; i <= 4; i++) {
+                loadImage(
+                    `images/img${i}.png`,
+                    (img) => myImages.push(img),
+                    () => console.log(`תמונה ${i} לא נטענה - בדוק את תיקיית images`)
+                );
+            }
+
+            document.getElementById('reset-order').addEventListener('click', () => {
+                clear();
+                dirtCount = 0;
+                updateStatus();
+            });
+        }
+
+        function draw() {
+            if (mouseX !== pmouseX || mouseY !== pmouseY) {
+                let speed = dist(mouseX, mouseY, pmouseX, pmouseY);
+                
+                noStroke();
+                for (let i = 0; i < 5; i++) {
+                    let offsetX = random(-30, 30);
+                    let offsetY = random(-30, 30);
+                    let size = random(2, 16);
+                    
+                    fill(15, 15, 15, random(150, 240));
+                    beginShape();
+                    for (let a = 0; a < TWO_PI; a += PI / 3) {
+                        let r = size * random(0.4, 1.3);
+                        vertex(mouseX + offsetX + cos(a) * r, mouseY + offsetY + sin(a) * r);
+                    }
+                    endShape(CLOSE);
+                }
+
+                if (speed > 15) {
+                    stroke(45, 28, 12, 180);
+                    strokeWeight(random(1, 3.5));
+                    for (let j = 0; j < 3; j++) {
+                        let startX = mouseX + random(-20, 20);
+                        let startY = mouseY + random(-20, 20);
+                        line(startX, startY, startX + random(-60, 60), startY + random(-15, 15));
+                    }
+                }
+
+                dirtCount = min(dirtCount + 2, maxDirt);
+                updateStatus();
+            }
+        }
+
+        function mousePressed() {
+            if (mouseY < 55) return;
+
+            if (myImages.length > 0) {
+                let currentImg = myImages[imgIndex];
+                if (currentImg && currentImg.width > 0) {
+                    push();
+                    translate(mouseX, mouseY);
+                    rotate(random(-0.22, 0.22)); 
+                    
+                    let targetWidth = random(240, 380);
+                    let aspectRatio = currentImg.height / currentImg.width;
+                    let targetHeight = targetWidth * aspectRatio;
+                    
+                    image(currentImg, 0, 0, targetWidth, targetHeight);
+                    pop();
+
+                    imgIndex = (imgIndex + 1) % myImages.length;
+                    dirtCount = min(dirtCount + 180, maxDirt);
+                    updateStatus();
+                }
+            }
+        }
+
+        function updateStatus() {
+            let percentage = Math.floor((dirtCount / maxDirt) * 100);
+            document.getElementById('dirt-level').innerText = percentage + '%';
+        }
+
+        function windowResized() {
+            resizeCanvas(windowWidth, windowHeight);
+        }
+    </script>
+</body>
+</html>
